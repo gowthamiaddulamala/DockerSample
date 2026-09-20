@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(145deg, #1e2b38 0%, #0f1a24 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            color: #e8f0f7;
+        }
+        h1 {
+            font-size: 2.4rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #7fc8ff, #b0e0ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-align: center;
+        }
+        .status {
+            font-size: 1.3rem;
+            margin-bottom: 1.5rem;
+            min-height: 2.2rem;
+            font-weight: 500;
+            color: #a9c4db;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .status.win {
+            color: #b6f0b6;
+            font-weight: 600;
+        }
+        .status.draw {
+            color: #f5d98f;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 24px;
+            box-shadow: 0 15px 30px -8px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.08);
+        }
+        .cell {
+            width: 96px;
+            height: 96px;
+            background: #1c2b38;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3.4rem;
+            font-weight: 700;
+            cursor: pointer;
+            user-select: none;
+            border: 2px solid rgba(255, 255, 255, 0.06);
+            box-shadow: 0 6px 0 #0d151d, 0 8px 16px rgba(0, 0, 0, 0.4);
+            transition: all 0.12s ease;
+            color: #d4e6f5;
+        }
+        .cell:active:not(.taken) {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #0d151d, 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+        .cell.taken {
+            cursor: default;
+        }
+        .cell.x {
+            color: #6ec8ff;
+            text-shadow: 0 0 12px rgba(110, 200, 255, 0.5);
+        }
+        .cell.o {
+            color: #ffb86b;
+            text-shadow: 0 0 12px rgba(255, 184, 107, 0.5);
+        }
+        .cell.highlight {
+            background: #2c4055;
+            border-color: #7fc8ff;
+            box-shadow: 0 0 0 2px #7fc8ff, 0 6px 0 #0d151d;
+        }
+        .reset-btn {
+            margin-top: 1.8rem;
+            padding: 0.9rem 2.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 60px;
+            background: linear-gradient(145deg, #2a4a63, #1a3346);
+            color: #d4e6f5;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #0b131b, 0 8px 18px rgba(0, 0, 0, 0.4);
+            transition: all 0.1s;
+            letter-spacing: 0.3px;
+        }
+        .reset-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #0b131b, 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+        .reset-btn:hover {
+            background: linear-gradient(145deg, #325973, #1e3a50);
+        }
+        @media (max-width: 420px) {
+            .cell {
+                width: 72px;
+                height: 72px;
+                font-size: 2.6rem;
+                border-radius: 14px;
+            }
+            .board { gap: 10px; padding: 10px; }
+            h1 { font-size: 1.9rem; }
+            .status { font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Tic Tac Toe</h1>
+    <div class="status" id="status">Player X's turn</div>
+    <div class="board" id="board">
+        <div class="cell" data-index="0"></div>
+        <div class="cell" data-index="1"></div>
+        <div class="cell" data-index="2"></div>
+        <div class="cell" data-index="3"></div>
+        <div class="cell" data-index="4"></div>
+        <div class="cell" data-index="5"></div>
+        <div class="cell" data-index="6"></div>
+        <div class="cell" data-index="7"></div>
+        <div class="cell" data-index="8"></div>
+    </div>
+    <button class="reset-btn" id="reset">New Game</button>
+
+    <script>
+        (function() {
+            const boardEl = document.getElementById('board');
+            const cells = document.querySelectorAll('.cell');
+            const statusEl = document.getElementById('status');
+            const resetBtn = document.getElementById('reset');
+
+            let board = ['', '', '', '', '', '', '', '', ''];
+            let currentPlayer = 'X';
+            let gameActive = true;
+            let winCombo = null;
+
+            const WIN_PATTERNS = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+                [0, 4, 8], [2, 4, 6]             // diagonals
+            ];
+
+            function checkWinner() {
+                for (let pattern of WIN_PATTERNS) {
+                    const [a, b, c] = pattern;
+                    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                        return { winner: board[a], combo: pattern };
+                    }
+                }
+                if (board.every(cell => cell !== '')) {
+                    return { winner: 'draw', combo: null };
+                }
+                return null;
+            }
+
+            function highlightWin(combo) {
+                if (!combo) return;
+                combo.forEach(idx => {
+                    cells[idx].classList.add('highlight');
+                });
+            }
+
+            function clearHighlight() {
+                cells.forEach(cell => cell.classList.remove('highlight'));
+            }
+
+            function updateStatus(message, type = '') {
+                statusEl.textContent = message;
+                statusEl.className = 'status';
+                if (type) statusEl.classList.add(type);
+            }
+
+            function handleCellClick(e) {
+                const cell = e.currentTarget;
+                const index = parseInt(cell.dataset.index, 10);
+
+                if (!gameActive || board[index] !== '') return;
+
+                // place mark
+                board[index] = currentPlayer;
+                cell.textContent = currentPlayer;
+                cell.classList.add('taken', currentPlayer.toLowerCase());
+
+                const result = checkWinner();
+
+                if (result) {
+                    gameActive = false;
+                    if (result.winner === 'draw') {
+                        updateStatus("It's a draw!", 'draw');
+                    } else {
+                        updateStatus(`Player ${result.winner} wins!`, 'win');
+                        highlightWin(result.combo);
+                    }
+                } else {
+                    // switch player
+                    currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                    updateStatus(`Player ${currentPlayer}'s turn`);
+                }
+            }
+
+            function resetGame() {
+                board = ['', '', '', '', '', '', '', '', ''];
+                currentPlayer = 'X';
+                gameActive = true;
+                clearHighlight();
+
+                cells.forEach(cell => {
+                    cell.textContent = '';
+                    cell.classList.remove('taken', 'x', 'o');
+                });
+
+                updateStatus("Player X's turn");
+            }
+
+            // attach event listeners
+            cells.forEach(cell => {
+                cell.addEventListener('click', handleCellClick);
+            });
+
+            resetBtn.addEventListener('click', resetGame);
+
+            // initial status
+            updateStatus("Player X's turn");
+        })();
+    </script>
+</body>
+</html>
